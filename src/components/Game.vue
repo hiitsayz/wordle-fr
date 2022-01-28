@@ -2,9 +2,12 @@
     <div id="game">
         <header>
             <div class="header-container">
-                <div class="header-left">
+                <div class="header-left" style="display: flex; gap: 10px">
                     <div class="icon-btn help" @click="helpOpened = true" title="Aide">
                         <img class="icon" src="/icons/help.svg" alt="Aide" />
+                    </div>
+                    <div class="icon-btn help" @click="newWord = true" title="Nouveau mot">
+                        <img class="icon" src="/icons/test.svg" alt="Nouveau mot" />
                     </div>
                 </div>
                 <div class="game-title"><!--MORDLE-->
@@ -145,6 +148,23 @@
                     </div>
                 </div>
             </transition>
+            <transition name="fadeup">
+                <div class="help-modal" v-if="newWord">
+                    <div class="help-modal-content">
+                        <div class="close-btn" @click="newWord = false">
+                            <img class="icon" src="/icons/close.svg" alt="Fermer" />
+                        </div>
+                        <h2>Nouveau mot</h2>
+                        <div class="help-content">
+                            <p>Vous êtes sur le point de générer un nouveau mot. Vous reparterez donc de zéro et le mot ne sera plus <span>{{wordOfTheDay}}</span>.</p>
+                            <p>Il vous restera {{ countdownToNextWord }} afin de compléter ce mot, après ce temps le fil des choses reprendra et le mot sera remplacé par le mot de demain.</p>
+                            <p style="color: #b82e47">Attention : vos statistiques seront comptées pour ces prochains mots, alors faites attention à ne pas faire trop d'erreurs !</p>
+                            <button class="hardcore-button" @click="newWordOfTheDay(); newWord = false">Continuer</button>
+                        </div>
+                    </div>
+                </div>
+            </transition>
+
             <transition name="fadeup">
                 <div class="endgame-modal" v-if="statsOpened">
                     <div class="endgame-modal-content" v-bind:class="{ 'finished' : finished}">
@@ -338,6 +358,7 @@ export default {
             statsOpened: false,
             settingsOpened: false,
             helpOpened: false,
+            newWord: false,
             colorBlindMode: false,
             hardcoreMode: false,
             sharedLink: true,
@@ -391,7 +412,9 @@ export default {
             this.attempts.push([]);
             this.results.push(new Array(5));
         }
-        this.getWordOfTheDay();
+        if (this.localStorage.getItem('newWordDate') != this.today.format('YYYY-M-D'))
+            this.getWordOfTheDay();
+
         this.getSavedData();
 
         if (localStorage.getItem('sharedLink')) {
@@ -434,6 +457,28 @@ export default {
             // Forcing temporaire pour éviter de changer le mot du jour de déploiement
             if (formatedDate === '2022-1-14')
                 this.wordOfTheDay = 'SMURA'.split('').reverse().join('')
+        },
+        async newWordOfTheDay() {
+            const newWordDate = this.today.format('YYYY-M-D');
+            const seed = seedrandom();
+            const random = seed();
+            this.wordOfTheDay = this.words[Math.floor(random * (this.words.indexOf('PIZZA') + 1))];
+            this.wordToGuess = this.wordOfTheDay.split('');
+
+            localStorage.setItem('newWordDate', newWordDate);
+            localStorage.setItem('wordToGuess', this.wordOfTheDay);
+            localStorage.setItem('wordToGuess2', this.wordToGuess);
+            localStorage.removeItem('attempts');
+            localStorage.removeItem('results');
+            localStorage.removeItem('won');
+            localStorage.removeItem('correctLetters');
+            localStorage.removeItem('partialLetters');
+            localStorage.removeItem('finished');
+            localStorage.removeItem('incorrectLetters');
+            localStorage.removeItem('currentAttempt');
+
+
+            location.reload();
         },
         getSavedData() {
             if (localStorage.getItem('lastSave')) {
@@ -886,6 +931,16 @@ export default {
                 overflow-y: auto
                 scrollbar-width: thin
                 scrollbar-color: #d2d2d280 #fff0
+                .hardcore-button
+                    height: 24px
+                    color: white
+                    background-color: #3eaa42
+                    border-radius: 5px
+                    border-bottom: 2px solid #359439
+                    cursor: pointer
+                    transition: all .3s
+                    padding: 0 16px
+                    margin: 8px
                 &::-webkit-scrollbar
                     -webkit-appearance: none
                     width: 4px
